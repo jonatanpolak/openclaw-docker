@@ -4,10 +4,10 @@
 # One-command setup for OpenClaw on Docker
 #
 # Usage:
-#   bash <(curl -fsSL https://raw.githubusercontent.com/phioranex/openclaw-docker/main/install.sh)
+#   bash <(curl -fsSL https://raw.githubusercontent.com/jonatanpolak/openclaw-docker/main/install.sh)
 #
 # Or with options:
-#   bash <(curl -fsSL https://raw.githubusercontent.com/phioranex/openclaw-docker/main/install.sh) --no-start
+#   bash <(curl -fsSL https://raw.githubusercontent.com/jonatanpolak/openclaw-docker/main/install.sh) --no-start
 #
 
 set -e
@@ -23,9 +23,11 @@ NC='\033[0m' # No Color
 
 # Config
 INSTALL_DIR="${OPENCLAW_INSTALL_DIR:-$HOME/openclaw}"
-IMAGE="ghcr.io/phioranex/openclaw-docker:latest"
-REPO_URL="https://github.com/phioranex/openclaw-docker"
-COMPOSE_URL="https://raw.githubusercontent.com/phioranex/openclaw-docker/main/docker-compose.yml"
+IMAGE="openclaw-local:latest"
+REPO_URL="https://github.com/jonatanpolak/openclaw-docker"
+COMPOSE_URL="https://raw.githubusercontent.com/jonatanpolak/openclaw-docker/main/docker-compose.yml"
+DOCKERFILE_URL="https://raw.githubusercontent.com/jonatanpolak/openclaw-docker/main/Dockerfile"
+DOCKERIGNORE_URL="https://raw.githubusercontent.com/jonatanpolak/openclaw-docker/main/.dockerignore"
 
 # Detect if we have a TTY (for Docker interactive mode)
 if [ -t 0 ]; then
@@ -37,7 +39,7 @@ fi
 # Flags
 NO_START=false
 SKIP_ONBOARD=false
-PULL_ONLY=false
+BUILD_ONLY=false
 
 # Parse arguments
 while [[ $# -gt 0 ]]; do
@@ -50,8 +52,8 @@ while [[ $# -gt 0 ]]; do
             SKIP_ONBOARD=true
             shift
             ;;
-        --pull-only)
-            PULL_ONLY=true
+        --build-only)
+            BUILD_ONLY=true
             shift
             ;;
         --install-dir)
@@ -67,7 +69,7 @@ while [[ $# -gt 0 ]]; do
             echo "  --install-dir DIR   Installation directory (default: ~/openclaw)"
             echo "  --no-start          Don't start the gateway after setup"
             echo "  --skip-onboard      Skip onboarding wizard"
-            echo "  --pull-only         Only pull the image, don't set up"
+            echo "  --build-only        Only build the image locally, don't set up"
             echo "  --help, -h          Show this help message"
             exit 0
             ;;
@@ -180,7 +182,7 @@ if [ $DOCKER_INFO_EXIT -ne 0 ]; then
         echo -e "  ${CYAN}sudo usermod -aG docker \$USER${NC}"
         echo -e "  ${CYAN}(then log out and log back in)${NC}"
         echo -e "\n${YELLOW}Or run the installer with sudo:${NC}"
-        echo -e "  ${CYAN}sudo bash <(curl -fsSL https://raw.githubusercontent.com/phioranex/openclaw-docker/main/install.sh)${NC}"
+        echo -e "  ${CYAN}sudo bash <(curl -fsSL https://raw.githubusercontent.com/jonatanpolak/openclaw-docker/main/install.sh)${NC}"
     else
         echo -e "\n${RED}Please start Docker and try again.${NC}"
     fi
@@ -188,12 +190,31 @@ if [ $DOCKER_INFO_EXIT -ne 0 ]; then
 fi
 log_success "Docker is running"
 
-# Pull only mode
-if [ "$PULL_ONLY" = true ]; then
-    log_step "Pulling OpenClaw image..."
-    docker pull "$IMAGE"
-    log_success "Image pulled successfully!"
-    echo -e "\n${GREEN}Done!${NC} Run the installer again without --pull-only to complete setup."
+# Build only mode
+if [ "$BUILD_ONLY" = true ]; then
+    log_step "Building OpenClaw image locally..."
+    # Create temp dir for building
+    TEMP_DIR=$(mktemp -d)
+    cd "$TEMP_DIR"
+
+    # Download Dockerfile and .dockerignore
+    log_step "Downloading Dockerfile..."
+    curl -fsSL "$DOCKERFILE_URL" -o Dockerfile
+
+    if curl -fsSL "$DOCKERIGNORE_URL" -o .dockerignore 2>/dev/null; then
+        log_success "Downloaded .dockerignore"
+    fi
+
+    # Build the image
+    log_step "Building Docker image (this may take a while on first run)..."
+    DOCKER_BUILDKIT=1 docker build -t "$IMAGE" .
+    log_success "Image built successfully!"
+
+    # Cleanup
+    rm -rf "$TEMP_DIR"
+
+    echo -e "\n${GREEN}Done!${NC} Image built as '$IMAGE'"
+    echo -e "Run the installer again without --build-only to complete setup."
     exit 0
 fi
 
@@ -202,8 +223,12 @@ mkdir -p "$INSTALL_DIR"
 cd "$INSTALL_DIR"
 log_success "Created $INSTALL_DIR"
 
-log_step "Downloading docker-compose.yml..."
+log_step "Downloading docker-compose.yml, Dockerfile, and .dockerignore..."
 curl -fsSL "$COMPOSE_URL" -o docker-compose.yml
+curl -fsSL "$DOCKERFILE_URL" -o Dockerfile
+if curl -fsSL "$DOCKERIGNORE_URL" -o .dockerignore 2>/dev/null; then
+    log_success "Downloaded .dockerignore"
+fi
 
 # Update docker-compose.yml to use correct home directory when running with sudo
 if [ -n "$SUDO_USER" ]; then
@@ -275,9 +300,9 @@ fi
 log_success "Created $OPENCLAW_DIR (config)"
 log_success "Created $OPENCLAW_DIR/workspace (workspace)"
 
-log_step "Pulling OpenClaw image..."
-docker pull "$IMAGE"
-log_success "Image pulled successfully!"
+log_step "Building OpenClaw image locally (this may take a while on first run)..."
+DOCKER_BUILDKIT=1 docker build -t "$IMAGE" .
+log_success "Image built successfully!"
 
 # Onboarding
 if [ "$SKIP_ONBOARD" = false ]; then
@@ -340,7 +365,7 @@ echo -e "  ${CYAN}Stop:${NC}           cd $INSTALL_DIR && $COMPOSE_CMD down"
 echo -e "  ${CYAN}Start:${NC}          cd $INSTALL_DIR && $COMPOSE_CMD up -d openclaw-gateway"
 echo -e "  ${CYAN}Restart:${NC}        cd $INSTALL_DIR && $COMPOSE_CMD restart openclaw-gateway"
 echo -e "  ${CYAN}CLI:${NC}            cd $INSTALL_DIR && $COMPOSE_CMD run --rm openclaw-cli <command>"
-echo -e "  ${CYAN}Update:${NC}         docker pull $IMAGE && cd $INSTALL_DIR && $COMPOSE_CMD up -d"
+echo -e "  ${CYAN}Update:${NC}         DOCKER_BUILDKIT=1 docker build -t $IMAGE . && cd $INSTALL_DIR && $COMPOSE_CMD up -d"
 
 echo -e "\n${BOLD}Documentation:${NC}  https://docs.openclaw.ai"
 echo -e "${BOLD}Support:${NC}        https://discord.gg/clawd"

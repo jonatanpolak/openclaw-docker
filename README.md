@@ -9,13 +9,13 @@ Pre-built Docker image for [OpenClaw](https://github.com/openclaw/openclaw) — 
 ### Linux / macOS
 
 ```bash
-bash <(curl -fsSL https://raw.githubusercontent.com/phioranex/openclaw-docker/main/install.sh)
+bash <(curl -fsSL https://raw.githubusercontent.com/jonatanpolak/openclaw-docker/main/install.sh)
 ```
 
 ### Windows (PowerShell)
 
 ```powershell
-irm https://raw.githubusercontent.com/phioranex/openclaw-docker/main/install.ps1 | iex
+irm https://raw.githubusercontent.com/jonatanpolak/openclaw-docker/main/install.ps1 | iex
 ```
 
 > **Note for Windows users:** Make sure Docker Desktop is installed and running. You can also use WSL2 with the Linux installation command.
@@ -23,7 +23,7 @@ irm https://raw.githubusercontent.com/phioranex/openclaw-docker/main/install.ps1
 This will:
 - ✅ Check prerequisites (Docker, Docker Compose)
 - ✅ Download necessary files
-- ✅ Pull the pre-built image
+- ✅ Build the Docker image locally (using BuildKit for speed)
 - ✅ Run the onboarding wizard
 - ✅ Start the gateway
 
@@ -36,33 +36,33 @@ This will:
 **Linux / macOS:**
 
 ```bash
-# Just pull the image (no setup)
-bash <(curl -fsSL https://raw.githubusercontent.com/phioranex/openclaw-docker/main/install.sh) --pull-only
+# Just build the image locally (no setup)
+bash <(curl -fsSL https://raw.githubusercontent.com/jonatanpolak/openclaw-docker/main/install.sh) --build-only
 
 # Skip onboarding (if already configured)
-bash <(curl -fsSL https://raw.githubusercontent.com/phioranex/openclaw-docker/main/install.sh) --skip-onboard
+bash <(curl -fsSL https://raw.githubusercontent.com/jonatanpolak/openclaw-docker/main/install.sh) --skip-onboard
 
 # Don't start gateway after setup
-bash <(curl -fsSL https://raw.githubusercontent.com/phioranex/openclaw-docker/main/install.sh) --no-start
+bash <(curl -fsSL https://raw.githubusercontent.com/jonatanpolak/openclaw-docker/main/install.sh) --no-start
 
 # Custom install directory
-bash <(curl -fsSL https://raw.githubusercontent.com/phioranex/openclaw-docker/main/install.sh) --install-dir /opt/openclaw
+bash <(curl -fsSL https://raw.githubusercontent.com/jonatanpolak/openclaw-docker/main/install.sh) --install-dir /opt/openclaw
 ```
 
 **Windows (PowerShell):**
 
 ```powershell
-# Just pull the image (no setup)
-irm https://raw.githubusercontent.com/phioranex/openclaw-docker/main/install.ps1 | iex -PullOnly
+# Just build the image locally (no setup)
+irm https://raw.githubusercontent.com/jonatanpolak/openclaw-docker/main/install.ps1 | iex -BuildOnly
 
 # Skip onboarding (if already configured)
-irm https://raw.githubusercontent.com/phioranex/openclaw-docker/main/install.ps1 | iex -SkipOnboard
+irm https://raw.githubusercontent.com/jonatanpolak/openclaw-docker/main/install.ps1 | iex -SkipOnboard
 
 # Don't start gateway after setup
-irm https://raw.githubusercontent.com/phioranex/openclaw-docker/main/install.ps1 | iex -NoStart
+irm https://raw.githubusercontent.com/jonatanpolak/openclaw-docker/main/install.ps1 | iex -NoStart
 
 # Custom install directory
-$env:TEMP_INSTALL_SCRIPT = irm https://raw.githubusercontent.com/phioranex/openclaw-docker/main/install.ps1; Invoke-Expression $env:TEMP_INSTALL_SCRIPT -InstallDir "C:\openclaw"
+$env:TEMP_INSTALL_SCRIPT = irm https://raw.githubusercontent.com/jonatanpolak/openclaw-docker/main/install.ps1; Invoke-Expression $env:TEMP_INSTALL_SCRIPT -InstallDir "C:\openclaw"
 ```
 
 ## Manual Install
@@ -70,14 +70,18 @@ $env:TEMP_INSTALL_SCRIPT = irm https://raw.githubusercontent.com/phioranex/openc
 ### Quick Start
 
 ```bash
-# Pull the image
-docker pull ghcr.io/phioranex/openclaw-docker:latest
+# Clone this repository
+git clone https://github.com/jonatanpolak/openclaw-docker.git
+cd openclaw-docker
+
+# Build the image (uses BuildKit for faster builds)
+DOCKER_BUILDKIT=1 docker build -t openclaw-local:latest .
 
 # Run onboarding (first time setup)
 docker run -it --rm \
   -v ~/.openclaw:/home/node/.openclaw \
   -v ~/.openclaw/workspace:/home/node/.openclaw/workspace \
-  ghcr.io/phioranex/openclaw-docker:latest onboard
+  openclaw-local:latest onboard
 
 # Start the gateway
 docker run -d \
@@ -86,21 +90,21 @@ docker run -d \
   -v ~/.openclaw:/home/node/.openclaw \
   -v ~/.openclaw/workspace:/home/node/.openclaw/workspace \
   -p 18789:18789 \
-  ghcr.io/phioranex/openclaw-docker:latest gateway start --foreground
+  openclaw-local:latest gateway start --foreground
 ```
 
 ### Using Docker Compose
 
 ```bash
 # Clone this repo
-git clone https://github.com/phioranex/openclaw-docker.git
+git clone https://github.com/jonatanpolak/openclaw-docker.git
 cd openclaw-docker
+
+# Build and start the gateway (builds locally with BuildKit)
+DOCKER_BUILDKIT=1 docker compose up -d openclaw-gateway
 
 # Run onboarding
 docker compose run --rm openclaw-cli onboard
-
-# Start the gateway
-docker compose up -d openclaw-gateway
 ```
 
 ## Configuration
@@ -149,13 +153,13 @@ Config is stored in `~/.openclaw/` and persists across container restarts.
 **Linux / macOS:**
 
 ```bash
-bash <(curl -fsSL https://raw.githubusercontent.com/phioranex/openclaw-docker/main/uninstall.sh)
+bash <(curl -fsSL https://raw.githubusercontent.com/jonatanpolak/openclaw-docker/main/uninstall.sh)
 ```
 
 **Windows (PowerShell):**
 
 ```powershell
-irm https://raw.githubusercontent.com/phioranex/openclaw-docker/main/uninstall.ps1 | iex
+irm https://raw.githubusercontent.com/jonatanpolak/openclaw-docker/main/uninstall.ps1 | iex
 ```
 
 This will:
@@ -170,32 +174,32 @@ This will:
 
 ```bash
 # Keep configuration and workspace data
-bash <(curl -fsSL https://raw.githubusercontent.com/phioranex/openclaw-docker/main/uninstall.sh) --keep-data
+bash <(curl -fsSL https://raw.githubusercontent.com/jonatanpolak/openclaw-docker/main/uninstall.sh) --keep-data
 
 # Keep Docker image (useful if reinstalling later)
-bash <(curl -fsSL https://raw.githubusercontent.com/phioranex/openclaw-docker/main/uninstall.sh) --keep-image
+bash <(curl -fsSL https://raw.githubusercontent.com/jonatanpolak/openclaw-docker/main/uninstall.sh) --keep-image
 
 # Skip all confirmation prompts
-bash <(curl -fsSL https://raw.githubusercontent.com/phioranex/openclaw-docker/main/uninstall.sh) --force
+bash <(curl -fsSL https://raw.githubusercontent.com/jonatanpolak/openclaw-docker/main/uninstall.sh) --force
 
 # Custom install directory
-bash <(curl -fsSL https://raw.githubusercontent.com/phioranex/openclaw-docker/main/uninstall.sh) --install-dir /opt/openclaw
+bash <(curl -fsSL https://raw.githubusercontent.com/jonatanpolak/openclaw-docker/main/uninstall.sh) --install-dir /opt/openclaw
 ```
 
 **Windows (PowerShell):**
 
 ```powershell
 # Keep configuration and workspace data
-& ([scriptblock]::Create((irm https://raw.githubusercontent.com/phioranex/openclaw-docker/main/uninstall.ps1))) -KeepData
+& ([scriptblock]::Create((irm https://raw.githubusercontent.com/jonatanpolak/openclaw-docker/main/uninstall.ps1))) -KeepData
 
 # Keep Docker image (useful if reinstalling later)
-& ([scriptblock]::Create((irm https://raw.githubusercontent.com/phioranex/openclaw-docker/main/uninstall.ps1))) -KeepImage
+& ([scriptblock]::Create((irm https://raw.githubusercontent.com/jonatanpolak/openclaw-docker/main/uninstall.ps1))) -KeepImage
 
 # Skip all confirmation prompts
-& ([scriptblock]::Create((irm https://raw.githubusercontent.com/phioranex/openclaw-docker/main/uninstall.ps1))) -Force
+& ([scriptblock]::Create((irm https://raw.githubusercontent.com/jonatanpolak/openclaw-docker/main/uninstall.ps1))) -Force
 
 # Custom install directory
-& ([scriptblock]::Create((irm https://raw.githubusercontent.com/phioranex/openclaw-docker/main/uninstall.ps1))) -InstallDir "C:\openclaw"
+& ([scriptblock]::Create((irm https://raw.githubusercontent.com/jonatanpolak/openclaw-docker/main/uninstall.ps1))) -InstallDir "C:\openclaw"
 ```
 
 ### Manual Uninstall
@@ -211,7 +215,7 @@ docker rm openclaw-gateway openclaw-socat openclaw-cli
 rm -rf ~/.openclaw
 
 # Remove Docker image (optional)
-docker rmi ghcr.io/phioranex/openclaw-docker:latest
+docker rmi openclaw-local:latest
 
 # Remove installation directory (optional)
 rm -rf ~/openclaw
@@ -225,7 +229,7 @@ If you encounter `EACCES: permission denied` errors when running on Synology NAS
 
 1. **Option 1: Run install script with sudo (Recommended)**
    ```bash
-   sudo bash <(curl -fsSL https://raw.githubusercontent.com/phioranex/openclaw-docker/main/install.sh)
+   sudo bash <(curl -fsSL https://raw.githubusercontent.com/jonatanpolak/openclaw-docker/main/install.sh)
    ```
    The script will automatically:
    - Set proper ownership (UID 1000) for the container user
@@ -300,5 +304,5 @@ If you're using `user: "1000:1000"` in docker-compose.yml, global npm installs w
 
 ## License
 
-This Docker packaging is provided by [Phioranex](https://phioranex.com).
+This Docker packaging is provided by [Phioranex](https://jonatanpolak.com).
 OpenClaw itself is licensed under MIT — see the [original repo](https://github.com/openclaw/openclaw).

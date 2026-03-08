@@ -1,11 +1,17 @@
+# syntax=docker/dockerfile:1
+# Enable BuildKit for faster builds with cache mounts
+# Run with: DOCKER_BUILDKIT=1 docker build .
 FROM node:22-bookworm
 
-LABEL org.opencontainers.image.source="https://github.com/phioranex/openclaw-docker"
+LABEL org.opencontainers.image.source="https://github.com/jonatanpolak/openclaw-docker"
 LABEL org.opencontainers.image.description="Pre-built OpenClaw (Clawbot) Docker image"
 LABEL org.opencontainers.image.licenses="MIT"
 
 # Install system dependencies (including Homebrew prerequisites)
-RUN apt-get update && apt-get install -y \
+# Use BuildKit cache mount for faster rebuilds
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    apt-get update && apt-get install -y \
     git \
     curl \
     ca-certificates \
@@ -52,8 +58,9 @@ RUN git clone --depth 1 --branch ${OPENCLAW_VERSION} https://github.com/openclaw
     echo "Building OpenClaw from branch: ${OPENCLAW_VERSION}" && \
     git rev-parse HEAD > /app/openclaw-commit.txt
 
-# Install dependencies
-RUN pnpm install --frozen-lockfile
+# Install dependencies - use BuildKit cache for pnpm store
+RUN --mount=type=cache,target=/root/.pnpm-store \
+    pnpm install --frozen-lockfile
 
 # Build
 RUN OPENCLAW_A2UI_SKIP_MISSING=1 pnpm build
@@ -76,7 +83,9 @@ RUN mkdir -p /home/node/.openclaw /home/node/.openclaw/workspace \
     && chown -R node:node /usr/local/bin
 
 # Install Playwright system dependencies (as root before switching to node user)
-RUN npx -y playwright@latest install-deps chromium
+# Use cache for playwright dependencies
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    npx -y playwright@latest install-deps chromium
 
 # Copy SSL certificates to a location accessible by all users
 RUN mkdir -p /usr/local/share/ca-certificates && \

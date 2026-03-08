@@ -4,10 +4,10 @@
 # Removes OpenClaw installation from your system
 #
 # Usage:
-#   bash <(curl -fsSL https://raw.githubusercontent.com/phioranex/openclaw-docker/main/uninstall.sh)
+#   bash <(curl -fsSL https://raw.githubusercontent.com/jonatanpolak/openclaw-docker/main/uninstall.sh)
 #
 # Or with options:
-#   bash <(curl -fsSL https://raw.githubusercontent.com/phioranex/openclaw-docker/main/uninstall.sh) --keep-data
+#   bash <(curl -fsSL https://raw.githubusercontent.com/jonatanpolak/openclaw-docker/main/uninstall.sh) --keep-data
 #
 
 set -e
@@ -23,7 +23,7 @@ NC='\033[0m' # No Color
 
 # Config
 INSTALL_DIR="${OPENCLAW_INSTALL_DIR:-$HOME/openclaw}"
-IMAGE="ghcr.io/phioranex/openclaw-docker:latest"
+IMAGE="openclaw-local:latest"
 
 # Flags
 KEEP_DATA=false
@@ -246,6 +246,6 @@ if [ "$KEEP_DATA" = true ] || [ -d "$OPENCLAW_DIR" ]; then
 fi
 
 echo -e "\n${BOLD}To reinstall OpenClaw:${NC}"
-echo -e "  ${CYAN}bash <(curl -fsSL https://raw.githubusercontent.com/phioranex/openclaw-docker/main/install.sh)${NC}"
+echo -e "  ${CYAN}bash <(curl -fsSL https://raw.githubusercontent.com/jonatanpolak/openclaw-docker/main/install.sh)${NC}"
 
 echo -e "\n${YELLOW}Thank you for using OpenClaw! 🦞${NC}\n"

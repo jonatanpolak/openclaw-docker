@@ -1,6 +1,7 @@
 services:
   openclaw-gateway:
-    image: ghcr.io/phioranex/openclaw-docker:latest
+    build: .
+    image: openclaw-local:latest
     container_name: openclaw-gateway
     restart: unless-stopped
     stdin_open: true
@@ -26,7 +27,8 @@ services:
     command: "TCP-LISTEN:18790,fork,bind=0.0.0.0,reuseaddr TCP:127.0.0.1:18789"
 
   openclaw-cli:
-    image: ghcr.io/phioranex/openclaw-docker:latest
+    build: .
+    image: openclaw-local:latest
     container_name: openclaw-cli
     stdin_open: true
     tty: true
